@@ -30,18 +30,27 @@ import org.apache.ibatis.session.Configuration;
 
 /**
  * @author Clinton Begin
+ *
+ * 构建者设计模式
+ *
+ 1、fetchSize
+默认情况下driver会一次性拉取所有结果集，也就是在executeQuery的时候。
+对于大数据量的查询来说，非常容易造成OOM。这种场景就需要设置fetchSize，
+执行query的时候先返回第一批数据，之后next完一批数据之后再去拉取下一批。
+
+ 2、在生成这个MappedStatement对象的时候，假如开启二级缓存的时，会生成对应类型的缓存实例
  */
 public final class MappedStatement {
 
-  private String resource;
-  private Configuration configuration;
-  private String id;
-  private Integer fetchSize;
+  private String resource;//xxx.xml 对应的xml
+  private Configuration configuration;//全局的那个配置对象
+  private String id;//带上namespace的全局id
+  private Integer fetchSize;//当结果集数据比较大的时候，这里可以设置分批次拉去结果
   private Integer timeout;
-  private StatementType statementType;
+  private StatementType statementType;//STATEMENT, PREPARED, CALLABLE，一般的是PREPARED
   private ResultSetType resultSetType;
-  private SqlSource sqlSource;
-  private Cache cache;
+  private SqlSource sqlSource; //要执行的SQL相关
+  private Cache cache;//二级缓存对象
   private ParameterMap parameterMap;
   private List<ResultMap> resultMaps;
   private boolean flushCacheRequired;

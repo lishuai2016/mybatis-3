@@ -27,12 +27,22 @@ import org.apache.ibatis.session.ResultHandler;
 
 /**
  * @author Clinton Begin
+(1. 对于JDBC的PreparedStatement类型的对象，创建的过程中，
+我们使用的是SQL语句字符串会包含 若干个? 占位符，我们其后再对占位符进行设值。
+
+StatementHandler通过parameterize(statement)方法对Statement进行设值；       
+
+(2.StatementHandler通过List<E> query(Statement statement,
+ResultHandler resultHandler)方法来完成执行Statement，和将Statement对象返回的resultSet封装成List；
+
  */
 public interface StatementHandler {
 
+  //根据标准的数据库链接生成Statement
   Statement prepare(Connection connection, Integer transactionTimeout)
       throws SQLException;
 
+  //对statement设置参数接口
   void parameterize(Statement statement)
       throws SQLException;
 
@@ -42,6 +52,7 @@ public interface StatementHandler {
   int update(Statement statement)
       throws SQLException;
 
+  //执行具体的SQL查询
   <E> List<E> query(Statement statement, ResultHandler resultHandler)
       throws SQLException;
 

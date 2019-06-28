@@ -31,6 +31,7 @@ import org.apache.ibatis.session.RowBounds;
 
 /**
  * @author Clinton Begin
+ * 这里又是一个包装类，根据StatementType类型路由到不同的具体StatementHandler的实现类来进行处理
  */
 public class RoutingStatementHandler implements StatementHandler {
 

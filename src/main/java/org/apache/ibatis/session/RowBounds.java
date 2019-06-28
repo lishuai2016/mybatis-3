@@ -17,6 +17,8 @@ package org.apache.ibatis.session;
 
 /**
  * @author Clinton Begin
+ *
+ * 结果集返回的行数限制，也就是limit后面的抽象
  */
 public class RowBounds {
 

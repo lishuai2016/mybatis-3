@@ -49,6 +49,8 @@ import org.apache.ibatis.type.JdbcType;
 /**
  * @author Clinton Begin
  * @author Kazuki Shimizu
+ *
+ * 负责将mybatis-config.xml配置文件解析成Configuration对象
  */
 public class XMLConfigBuilder extends BaseBuilder {
 
@@ -95,9 +97,26 @@ public class XMLConfigBuilder extends BaseBuilder {
       throw new BuilderException("Each XMLConfigBuilder can only be used once.");
     }
     parsed = true;
-    parseConfiguration(parser.evalNode("/configuration"));
+    parseConfiguration(parser.evalNode("/configuration"));//这里获取mybatis-config.xml中的configuration节点，然后依次解析其他节点中对应的数据信息
     return configuration;
   }
+
+  /**
+   按照下面的顺序依次解析配置文件中的信息
+   properties（属性）
+   settings（设置）
+   typeAliases（类型别名）
+   typeHandlers（类型处理器）
+   objectFactory（对象工厂）
+   plugins（插件）
+   environments（环境配置）
+   environment（环境变量）
+   transactionManager（事务管理器）
+   dataSource（数据源）
+   databaseIdProvider（数据库厂商标识）
+   mappers（映射器）
+   * @param root
+   */
 
   private void parseConfiguration(XNode root) {
     try {
@@ -113,10 +132,10 @@ public class XMLConfigBuilder extends BaseBuilder {
       reflectorFactoryElement(root.evalNode("reflectorFactory"));
       settingsElement(settings);
       // read it after objectFactory and objectWrapperFactory issue #631
-      environmentsElement(root.evalNode("environments"));
+      environmentsElement(root.evalNode("environments"));//这里面的environment封装了事务和DataSource
       databaseIdProviderElement(root.evalNode("databaseIdProvider"));
       typeHandlerElement(root.evalNode("typeHandlers"));
-      mapperElement(root.evalNode("mappers"));
+      mapperElement(root.evalNode("mappers"));//这里解析编写的xxx.xml文件【重要】
     } catch (Exception e) {
       throw new BuilderException("Error parsing SQL Mapper Configuration. Cause: " + e, e);
     }
@@ -323,6 +342,7 @@ public class XMLConfigBuilder extends BaseBuilder {
       String type = context.getStringAttribute("type");
       Properties props = context.getChildrenAsProperties();
       DataSourceFactory factory = (DataSourceFactory) resolveClass(type).newInstance();
+      //从TypeAliasRegistry map中获得指定类型的数据源工厂
       factory.setProperties(props);
       return factory;
     }

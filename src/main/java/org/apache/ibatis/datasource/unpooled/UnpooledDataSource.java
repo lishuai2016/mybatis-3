@@ -47,7 +47,7 @@ public class UnpooledDataSource implements DataSource {
   private String password;
 
   private Boolean autoCommit;
-  private Integer defaultTransactionIsolationLevel;
+  private Integer defaultTransactionIsolationLevel;//默认的事务隔离级别
 
   static {
     Enumeration<Driver> drivers = DriverManager.getDrivers();
@@ -197,9 +197,9 @@ public class UnpooledDataSource implements DataSource {
   }
 
   private Connection doGetConnection(Properties properties) throws SQLException {
-    initializeDriver();
+    initializeDriver();//注册驱动器类并保存包本地的map中,通过map可以实现相同驱动器的链接只注册一次
     Connection connection = DriverManager.getConnection(url, properties);
-    configureConnection(connection);
+    configureConnection(connection);//设置事务的自动提交和隔离级别
     return connection;
   }
 

@@ -54,6 +54,15 @@ public class MapperMethod {
     this.method = new MethodSignature(config, mapperInterface, method);
   }
 
+  /**
+   *
+   *  1、这里的SqlCommand包含了要执行SQL的statementid和该条SQL的类型UNKNOWN, INSERT, UPDATE, DELETE, SELECT, FLUSH
+   *  2、经过判断最后还是执行sqlsession对应的方法
+   *
+   * @param sqlSession
+   * @param args
+   * @return
+   */
   public Object execute(SqlSession sqlSession, Object[] args) {
     Object result;
     switch (command.getType()) {

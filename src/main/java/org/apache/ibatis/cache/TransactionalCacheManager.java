@@ -25,7 +25,7 @@ import org.apache.ibatis.cache.decorators.TransactionalCache;
  */
 public class TransactionalCacheManager {
 
-  private final Map<Cache, TransactionalCache> transactionalCaches = new HashMap<>();
+  private final Map<Cache, TransactionalCache> transactionalCaches = new HashMap<>();//保存全局缓存？？？
 
   public void clear(Cache cache) {
     getTransactionalCache(cache).clear();

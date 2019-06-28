@@ -25,6 +25,9 @@ import org.apache.ibatis.reflection.ExceptionUtil;
 
 /**
  * @author Clinton Begin
+ *
+ * 其实这个PooledConnection对象是Connection的动态代理对象，并且把生成的代理对象封装到这个类里面，并提供方法来获取，
+ * 在执行的时候间接来调用invoke方法
  */
 class PooledConnection implements InvocationHandler {
 
@@ -34,7 +37,7 @@ class PooledConnection implements InvocationHandler {
   private final int hashCode;
   private final PooledDataSource dataSource;
   private final Connection realConnection;
-  private final Connection proxyConnection;
+  private final Connection proxyConnection;//代理的数据库链接
   private long checkoutTimestamp;
   private long createdTimestamp;
   private long lastUsedTimestamp;
@@ -54,6 +57,7 @@ class PooledConnection implements InvocationHandler {
     this.createdTimestamp = System.currentTimeMillis();
     this.lastUsedTimestamp = System.currentTimeMillis();
     this.valid = true;
+    //这里使用了jdk的动态代理，用户使用的是这个生成的动态代理对象，然后对connection方法的调用，间接调用该对象的invoke方法，最后由真正的链接realConnection来执行
     this.proxyConnection = (Connection) Proxy.newProxyInstance(Connection.class.getClassLoader(), IFACES, this);
   }
 
@@ -232,7 +236,7 @@ class PooledConnection implements InvocationHandler {
   @Override
   public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
     String methodName = method.getName();
-    if (CLOSE.hashCode() == methodName.hashCode() && CLOSE.equals(methodName)) {
+    if (CLOSE.hashCode() == methodName.hashCode() && CLOSE.equals(methodName)) {//在关闭线程池的时候会先判断是否有必要放到线程池中
       dataSource.pushConnection(this);
       return null;
     }

@@ -44,6 +44,16 @@ import org.apache.ibatis.session.SqlSession;
  * Note that this class is not Thread-Safe.
  *
  * @author Clinton Begin
+ *
+ * SqlSession根据Statement ID, 在mybatis配置对象Configuration中获取到对应的MappedStatement对象，
+ * 然后调用mybatis执行器来执行具体的操作。
+ *
+ * 问题：
+ * 1、sqlsession使用完谁来关闭？如何来控制sqlsession的生命周期？
+ *
+ * 2、如何来关闭sqlsession？关闭的时候都执行了什么操作？
+ * 调用org.apache.ibatis.session.defaults.DefaultSqlSession#close()的时候会执行关闭数据库链接connection和清理本地的一级缓存
+ *
  */
 public class DefaultSqlSession implements SqlSession {
 
@@ -140,10 +150,18 @@ public class DefaultSqlSession implements SqlSession {
     return this.selectList(statement, parameter, RowBounds.DEFAULT);
   }
 
+  /**
+   * 真正执行SQL查询的入口
+   * @param statement Unique identifier matching the statement to use.
+   * @param parameter A parameter object to pass to the statement.
+   * @param rowBounds  Bounds to limit object retrieval
+   * @param <E>
+   * @return
+   */
   @Override
   public <E> List<E> selectList(String statement, Object parameter, RowBounds rowBounds) {
     try {
-      MappedStatement ms = configuration.getMappedStatement(statement);
+      MappedStatement ms = configuration.getMappedStatement(statement);//这里根据id从configuration的map中获取MappedStatement
       return executor.query(ms, wrapCollection(parameter), rowBounds, Executor.NO_RESULT_HANDLER);
     } catch (Exception e) {
       throw ExceptionFactory.wrapException("Error querying database.  Cause: " + e, e);
@@ -286,6 +304,13 @@ public class DefaultSqlSession implements SqlSession {
     return configuration;
   }
 
+  /**
+   *  在通过 UserMapper mapper = session.getMapper(UserMapper.class);获得mapper的时候，
+   *  会根据当前sqlsession通过动态代理生成一个Mapper实例
+   * @param type Mapper interface class
+   * @param <T>
+   * @return
+   */
   @Override
   public <T> T getMapper(Class<T> type) {
     return configuration.getMapper(type, this);

@@ -35,6 +35,9 @@ import org.apache.ibatis.logging.LogFactory;
  *
  * @author Clinton Begin
  * @author Eduardo Macarron
+ *
+ * 这里四个包装类，然后把从委托的缓存实例中获取缓存信息
+ *
  */
 public class TransactionalCache implements Cache {
 

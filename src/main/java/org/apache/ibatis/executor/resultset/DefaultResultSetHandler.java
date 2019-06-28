@@ -184,12 +184,13 @@ public class DefaultResultSetHandler implements ResultSetHandler {
     final List<Object> multipleResults = new ArrayList<>();
 
     int resultSetCount = 0;
+    //  ResultSet rs = stmt.getResultSet(); 获取结果集
     ResultSetWrapper rsw = getFirstResultSet(stmt);
 
     List<ResultMap> resultMaps = mappedStatement.getResultMaps();
     int resultMapCount = resultMaps.size();
     validateResultMapsCount(rsw, resultMapCount);
-    while (rsw != null && resultMapCount > resultSetCount) {
+    while (rsw != null && resultMapCount > resultSetCount) {//这里应该根据设置来判断调用多少次ResultSet rs = stmt.getResultSet();
       ResultMap resultMap = resultMaps.get(resultSetCount);
       handleResultSet(rsw, resultMap, multipleResults, null);
       rsw = getNextResultSet(stmt);

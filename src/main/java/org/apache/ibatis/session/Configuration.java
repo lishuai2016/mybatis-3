@@ -96,10 +96,12 @@ import org.apache.ibatis.type.TypeHandlerRegistry;
 
 /**
  * @author Clinton Begin
+ *
+ * 该对象是mybatis-config.xml文件中所有mybatis配置信息
  */
 public class Configuration {
 
-  protected Environment environment;
+  protected Environment environment;//包含数据源DataSource
 
   protected boolean safeRowBoundsEnabled;
   protected boolean safeResultHandlerEnabled = true;

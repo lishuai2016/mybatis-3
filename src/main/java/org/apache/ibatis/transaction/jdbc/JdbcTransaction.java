@@ -31,6 +31,15 @@ import org.apache.ibatis.transaction.TransactionException;
  * Delays connection retrieval until getConnection() is called.
  * Ignores commit or rollback requests when autocommit is on.
  *
+ * Transaction可以非常便利的使用JDBC的事务提交和回滚；
+ * 它依赖于从数据源DataSource获得的connection来完成自己对事务的管理；
+ * 它会延迟从数据源DataSource获得数据库的链接，知道调用getConnection()；
+ * 当事务的自动提交开启的时候会忽略commit 和 rollback方法；
+ *
+ *  直观地讲，就是JdbcTransaction是使用的java.sql.Connection 上的commit和rollback功能，
+ *  JdbcTransaction只是相当于对java.sql.Connection事务处理进行了一次包装（wrapper），
+ *  Transaction的事务管理都是通过java.sql.Connection实现的
+ *
  * @author Clinton Begin
  *
  * @see JdbcTransactionFactory
@@ -41,8 +50,8 @@ public class JdbcTransaction implements Transaction {
 
   protected Connection connection;
   protected DataSource dataSource;
-  protected TransactionIsolationLevel level;
-  protected boolean autoCommit;
+  protected TransactionIsolationLevel level;//事务的隔离级别
+  protected boolean autoCommit;//事务是否开启自动提交
 
   public JdbcTransaction(DataSource ds, TransactionIsolationLevel desiredLevel, boolean desiredAutoCommit) {
     dataSource = ds;
@@ -63,7 +72,7 @@ public class JdbcTransaction implements Transaction {
   }
 
   @Override
-  public void commit() throws SQLException {
+  public void commit() throws SQLException {//没有开启自动提交事务的才会执行
     if (connection != null && !connection.getAutoCommit()) {
       if (log.isDebugEnabled()) {
         log.debug("Committing JDBC Connection [" + connection + "]");
@@ -73,7 +82,7 @@ public class JdbcTransaction implements Transaction {
   }
 
   @Override
-  public void rollback() throws SQLException {
+  public void rollback() throws SQLException {//没有开启自动提交事务的才会执行
     if (connection != null && !connection.getAutoCommit()) {
       if (log.isDebugEnabled()) {
         log.debug("Rolling back JDBC Connection [" + connection + "]");
@@ -85,7 +94,7 @@ public class JdbcTransaction implements Transaction {
   @Override
   public void close() throws SQLException {
     if (connection != null) {
-      resetAutoCommit();
+      resetAutoCommit();//开启事务的自动提交？？？
       if (log.isDebugEnabled()) {
         log.debug("Closing JDBC Connection [" + connection + "]");
       }
@@ -135,9 +144,9 @@ public class JdbcTransaction implements Transaction {
     if (log.isDebugEnabled()) {
       log.debug("Opening JDBC Connection");
     }
-    connection = dataSource.getConnection();
+    connection = dataSource.getConnection();//获取一个数据库链接
     if (level != null) {
-      connection.setTransactionIsolation(level.getLevel());
+      connection.setTransactionIsolation(level.getLevel());//设置事务的隔离界别
     }
     setDesiredAutoCommit(autoCommit);
   }

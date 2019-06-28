@@ -29,6 +29,18 @@ import org.apache.ibatis.transaction.Transaction;
 
 /**
  * @author Clinton Begin
+ *
+ * sqlsession中包含Executor的实例对象，通过Executor接口中的方法来执行sqlsession中相应的方法。
+ * 但是Executor也不是直接和数据库链接来执行SQL的，
+ * 而是通过Executor中的内部对象Transaction对象获得数据库的链接来执行的。
+ *
+ * 复制动态SQL的生成以及查询缓存
+ *
+(1、根据传递的参数，完成SQL语句的动态解析，生成BoundSql对象，供StatementHandler使用；
+
+(2、为查询创建缓存，以提高性能
+
+(3、创建JDBC的Statement连接对象，传递给StatementHandler对象，返回List查询结果。
  */
 public interface Executor {
 

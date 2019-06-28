@@ -46,6 +46,38 @@ import org.apache.ibatis.type.TypeHandlerRegistry;
 
 /**
  * @author Clinton Begin
+ *
+实际上,SqlSession只是一个MyBatis对外的接口，SqlSession将它的工作交给了Executor执行器这个角色来完成，
+负责完成对数据库的各种操作。当创建了一个SqlSession对象时，MyBatis会为这个SqlSession对象创建一个新的Executor执行器，
+而缓存信息就被维护在这个Executor执行器中，MyBatis将缓存和对缓存相关的操作封装成了Cache接口中
+
+一、一级缓存的生命周期有多长？
+a. MyBatis在开启一个数据库会话时，会 创建一个新的SqlSession对象，SqlSession对象中会有一个新的Executor对象，Executor对象中持有一个新的PerpetualCache对象；当会话结束时，SqlSession对象及其内部的Executor对象还有PerpetualCache对象也一并释放掉。
+
+b. 如果SqlSession调用了close()方法，会释放掉一级缓存PerpetualCache对象，一级缓存将不可用；
+
+c. 如果SqlSession调用了clearCache()，会清空PerpetualCache对象中的数据，但是该对象仍可使用；
+
+d.SqlSession中执行了任何一个update操作(update()、delete()、insert()) ，都会清空PerpetualCache对象的数据，但是该对象可以继续使用；
+
+二、SqlSession 一级缓存的工作流程：
+
+1.对于某个查询，根据statementId,params,rowBounds来构建一个key值，根据这个key值去缓存Cache中取出对应的key值存储的缓存结果；
+
+2. 判断从Cache中根据特定的key值取的数据数据是否为空，即是否命中；
+
+3. 如果命中，则直接将缓存结果返回；
+
+4. 如果没命中：
+
+        4.1  去数据库中查询数据，得到查询结果；
+
+        4.2  将key和查询到的结果分别作为key,value对存储到Cache中；
+
+        4.3. 将查询结果返回；
+
+5. 结束。
+
  */
 public abstract class BaseExecutor implements Executor {
 
@@ -55,12 +87,12 @@ public abstract class BaseExecutor implements Executor {
   protected Executor wrapper;
 
   protected ConcurrentLinkedQueue<DeferredLoad> deferredLoads;
-  protected PerpetualCache localCache;
+  protected PerpetualCache localCache;//一级缓存的存储位置【hashmap中】
   protected PerpetualCache localOutputParameterCache;
   protected Configuration configuration;
 
   protected int queryStack;
-  private boolean closed;
+  private boolean closed;//执行器关闭的标记
 
   protected BaseExecutor(Configuration configuration, Transaction transaction) {
     this.transaction = transaction;
@@ -86,14 +118,14 @@ public abstract class BaseExecutor implements Executor {
       try {
         rollback(forceRollback);
       } finally {
-        if (transaction != null) {
+        if (transaction != null) { //关闭数据库链接connection
           transaction.close();
         }
       }
     } catch (SQLException e) {
       // Ignore.  There's nothing that can be done at this point.
       log.warn("Unexpected exception on closing transaction.  Cause: " + e);
-    } finally {
+    } finally { //把相应的对象设置为null
       transaction = null;
       deferredLoads = null;
       localCache = null;
@@ -131,7 +163,9 @@ public abstract class BaseExecutor implements Executor {
 
   @Override
   public <E> List<E> query(MappedStatement ms, Object parameter, RowBounds rowBounds, ResultHandler resultHandler) throws SQLException {
+    // 1.根据具体传入的参数，动态地生成需要执行的SQL语句，用BoundSql对象表示
     BoundSql boundSql = ms.getBoundSql(parameter);
+    // 2.为当前的查询创建一个缓存Key
     CacheKey key = createCacheKey(ms, parameter, rowBounds, boundSql);
     return query(ms, parameter, rowBounds, resultHandler, key, boundSql);
   }
@@ -149,10 +183,12 @@ public abstract class BaseExecutor implements Executor {
     List<E> list;
     try {
       queryStack++;
+      //判断缓存中是否有数据，这里面的resultHandler == null判断是干嘛用的？？？
       list = resultHandler == null ? (List<E>) localCache.getObject(key) : null;
       if (list != null) {
         handleLocallyCachedOutputParameters(ms, key, parameter, boundSql);
       } else {
+        // 3.缓存中没有值，直接从数据库中读取数据
         list = queryFromDatabase(ms, parameter, rowBounds, resultHandler, key, boundSql);
       }
     } finally {
@@ -191,16 +227,29 @@ public abstract class BaseExecutor implements Executor {
     }
   }
 
+  /**
+   * 根据statementId  + rowBounds  + 传递给JDBC的SQL  + 传递给JDBC的参数值来创建缓存key
+   * @param ms
+   * @param parameterObject
+   * @param rowBounds
+   * @param boundSql
+   * @return
+   */
   @Override
   public CacheKey createCacheKey(MappedStatement ms, Object parameterObject, RowBounds rowBounds, BoundSql boundSql) {
     if (closed) {
       throw new ExecutorException("Executor was closed.");
     }
     CacheKey cacheKey = new CacheKey();
+    //1.statementId
     cacheKey.update(ms.getId());
+    //2. rowBounds.offset
     cacheKey.update(rowBounds.getOffset());
+    //3. rowBounds.limit
     cacheKey.update(rowBounds.getLimit());
+    //4. SQL语句
     cacheKey.update(boundSql.getSql());
+    //5. 将每一个要传递给JDBC的参数值也更新到CacheKey中
     List<ParameterMapping> parameterMappings = boundSql.getParameterMappings();
     TypeHandlerRegistry typeHandlerRegistry = ms.getConfiguration().getTypeHandlerRegistry();
     // mimic DefaultParameterHandler logic
@@ -218,6 +267,7 @@ public abstract class BaseExecutor implements Executor {
           MetaObject metaObject = configuration.newMetaObject(parameterObject);
           value = metaObject.getValue(propertyName);
         }
+        //将每一个要传递给JDBC的参数值也更新到CacheKey中
         cacheKey.update(value);
       }
     }
@@ -249,7 +299,7 @@ public abstract class BaseExecutor implements Executor {
   public void rollback(boolean required) throws SQLException {
     if (!closed) {
       try {
-        clearLocalCache();
+        clearLocalCache();//清理本地的一级缓存
         flushStatements(true);
       } finally {
         if (required) {
@@ -321,11 +371,11 @@ public abstract class BaseExecutor implements Executor {
     List<E> list;
     localCache.putObject(key, EXECUTION_PLACEHOLDER);
     try {
-      list = doQuery(ms, parameter, rowBounds, resultHandler, boundSql);
+      list = doQuery(ms, parameter, rowBounds, resultHandler, boundSql);//从数据库查询处结果
     } finally {
       localCache.removeObject(key);
     }
-    localCache.putObject(key, list);
+    localCache.putObject(key, list);//把结果放到本地的缓存中
     if (ms.getStatementType() == StatementType.CALLABLE) {
       localOutputParameterCache.putObject(key, parameter);
     }

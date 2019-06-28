@@ -38,7 +38,7 @@ public class ResultMap {
   private Configuration configuration;
 
   private String id;
-  private Class<?> type;
+  private Class<?> type;//返回值类型
   private List<ResultMapping> resultMappings;
   private List<ResultMapping> idResultMappings;
   private List<ResultMapping> constructorResultMappings;

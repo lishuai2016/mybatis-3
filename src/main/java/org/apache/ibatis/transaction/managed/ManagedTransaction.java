@@ -30,6 +30,17 @@ import org.apache.ibatis.transaction.Transaction;
  * Ignores all commit or rollback requests.
  * By default, it closes the connection but can be configured not to do it.
  *
+ * 而是让程序的容器如（JBOSS，Weblogic）来实现对事务的管理
+ *
+ *  ManagedTransaction让容器来管理事务Transaction的整个生命周期，意思就是说，
+ *  使用ManagedTransaction的commit和rollback功能不会对事务有任何的影响，
+ *  它什么都不会做，它将事务管理的权利移交给了容器来实现
+ *
+ 注意：如果我们使用MyBatis构建本地程序，即不是WEB程序，若将type设置成"MANAGED"，
+ 那么，我们执行的任何update操作，即使我们最后执行了commit操作，数据也不会保留，
+ 不会对数据库造成任何影响。因为我们将MyBatis配置成了“MANAGED”，即MyBatis自己不管理事务，
+ 而我们又是运行的本地程序，没有事务管理功能，所以对数据库的update操作都是无效的。
+
  * @author Clinton Begin
  *
  * @see ManagedTransactionFactory

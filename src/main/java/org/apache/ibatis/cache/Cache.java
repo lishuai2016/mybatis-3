@@ -37,6 +37,28 @@ import java.util.concurrent.locks.ReadWriteLock;
  * </pre>
  *
  * @author Clinton Begin
+ *
+MyBatis定义了一个org.apache.ibatis.cache.Cache接口作为其Cache提供者的SPI(Service Provider Interface) ，
+所有的MyBatis内部的Cache缓存，都应该实现这一接口。MyBatis定义了一个PerpetualCache实现类实现了Cache接口，
+实际上，在SqlSession对象里的Executor 对象内维护的Cache类型实例对象，就是PerpetualCache子类创建的。
+
+备注：（MyBatis内部还有很多Cache接口的实现，一级缓存只会涉及到这一个PerpetualCache子类，Cache的其他实现将会放到二级缓存中介绍）。
+
+
+MyBatis自身提供了丰富的，并且功能强大的二级缓存的实现，它拥有一系列的Cache接口装饰者，
+可以满足各种对缓存操作和更新的策略。
+
+MyBatis定义了大量的Cache的装饰器来增强Cache缓存的功能，如下类图所示。
+
+对于每个Cache而言，都有一个容量限制，MyBatis各供了各种策略来对Cache缓存的容量进行控制，以及对Cache中的数据进行刷新和置换。MyBatis主要提供了以下几个刷新和置换策略：
+
+LRU：（Least Recently Used）,最近最少使用算法，即如果缓存中容量已经满了，会将缓存中最近做少被使用的缓存记录清除掉，然后添加新的记录；
+
+FIFO：（First in first out）,先进先出算法，如果缓存中的容量已经满了，那么会将最先进入缓存中的数据清除掉；
+
+Scheduled：指定时间间隔清空算法，该算法会以指定的某一个时间间隔将Cache缓存中的数据清空；
+
+
  */
 
 public interface Cache {

@@ -41,12 +41,12 @@ public abstract class BaseStatementHandler implements StatementHandler {
   protected final Configuration configuration;
   protected final ObjectFactory objectFactory;
   protected final TypeHandlerRegistry typeHandlerRegistry;
-  protected final ResultSetHandler resultSetHandler;
-  protected final ParameterHandler parameterHandler;
+  protected final ResultSetHandler resultSetHandler;//作用是在statement.execute()执行返回结果后，对结果集进行封装处理
+  protected final ParameterHandler parameterHandler;//在通过connection生成标准的Statement后，对其进行参数设置处理
 
   protected final Executor executor;
-  protected final MappedStatement mappedStatement;
-  protected final RowBounds rowBounds;
+  protected final MappedStatement mappedStatement;//在xml编写的SQL抽象
+  protected final RowBounds rowBounds;//返回结果的limit限制
 
   protected BoundSql boundSql;
 
@@ -80,6 +80,13 @@ public abstract class BaseStatementHandler implements StatementHandler {
     return parameterHandler;
   }
 
+  /**
+   * 在这里根据connection生成标准的Statement对象
+   * @param connection
+   * @param transactionTimeout
+   * @return
+   * @throws SQLException
+   */
   @Override
   public Statement prepare(Connection connection, Integer transactionTimeout) throws SQLException {
     ErrorContext.instance().sql(boundSql.getSql());

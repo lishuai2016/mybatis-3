@@ -20,6 +20,9 @@ import java.util.List;
 
 /**
  * @author Clinton Begin
+ *
+ * 这个对象维护线程池的一些状态信息，是真正保存线程的地方
+ *
  */
 public class PoolState {
 

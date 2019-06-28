@@ -293,7 +293,7 @@ public class MapperBuilderAssistant extends BaseBuilder {
     }
 
     MappedStatement statement = statementBuilder.build();
-    configuration.addMappedStatement(statement);
+    configuration.addMappedStatement(statement);//在这里把自己写的xml文件信息对应的SQL封装成MappedStatement依据id放在configuration中的mappedStatements
     return statement;
   }
 

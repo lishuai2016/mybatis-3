@@ -35,6 +35,20 @@ import org.apache.ibatis.transaction.Transaction;
 /**
  * @author Clinton Begin
  * @author Eduardo Macarron
+ *
+ * 这个执行器是对其他普通执行器的包装【装饰者设计模式】
+ *
+ * cacheEnabled	全局地开启或关闭配置文件中的所有映射器已经配置的任何缓存。 默认为true
+
+当开一个会话时，一个SqlSession对象会使用一个Executor对象来完成会话操作，
+MyBatis的二级缓存机制的关键就是对这个Executor对象做文章。如果用户配置了"cacheEnabled=true"，
+那么MyBatis在为SqlSession对象创建Executor对象时，会对Executor对象加上一个装饰者：CachingExecutor，
+这时SqlSession使用CachingExecutor对象来完成操作请求。CachingExecutor对于查询请求，
+会先判断该查询请求在Application级别的二级缓存中是否有缓存结果，
+如果有查询结果，则直接返回缓存结果；如果缓存中没有，再交给真正的Executor对象来完成查询操作，
+之后CachingExecutor会将真正Executor返回的查询结果放置到缓存中，然后在返回给用户。
+
+
  */
 public class CachingExecutor implements Executor {
 
@@ -92,13 +106,15 @@ public class CachingExecutor implements Executor {
   @Override
   public <E> List<E> query(MappedStatement ms, Object parameterObject, RowBounds rowBounds, ResultHandler resultHandler, CacheKey key, BoundSql boundSql)
       throws SQLException {
-    Cache cache = ms.getCache();
+    Cache cache = ms.getCache();//重要，这里指定二级缓存使用的具体是按个缓存策略实现类
+    //当这个cache对象为null的时候说明没有开启二级缓存，直接通过执行器去执行查询操作
     if (cache != null) {
       flushCacheIfRequired(ms);
       if (ms.isUseCache() && resultHandler == null) {
         ensureNoOutParams(ms, boundSql);
         @SuppressWarnings("unchecked")
         List<E> list = (List<E>) tcm.getObject(cache, key);
+        //从二级缓存中获取数据，没有的话值通过执行器去获得【这里面也是先通过一级缓存来查，没有的话才会查询数据库】
         if (list == null) {
           list = delegate.query(ms, parameterObject, rowBounds, resultHandler, key, boundSql);
           tcm.putObject(cache, key, list); // issue #578 and #116

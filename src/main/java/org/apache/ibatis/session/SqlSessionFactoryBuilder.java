@@ -29,6 +29,9 @@ import org.apache.ibatis.session.defaults.DefaultSqlSessionFactory;
  * Builds {@link SqlSession} instances.
  *
  * @author Clinton Begin
+ *
+ * qlSessionFactory的构造器，用于创建SqlSessionFactory，采用了Builder设计模式
+ * 主要根据Reader和InputStream读取配置文件的信息来生成SqlSessionFactory对象
  */
 public class SqlSessionFactoryBuilder {
 
@@ -75,7 +78,7 @@ public class SqlSessionFactoryBuilder {
   public SqlSessionFactory build(InputStream inputStream, String environment, Properties properties) {
     try {
       XMLConfigBuilder parser = new XMLConfigBuilder(inputStream, environment, properties);
-      return build(parser.parse());
+      return build(parser.parse());//根据配置文件来生成configuration对象，然后基于configuration对象生成SqlSessionFactory
     } catch (Exception e) {
       throw ExceptionFactory.wrapException("Error building SqlSession.", e);
     } finally {
